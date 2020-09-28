@@ -380,7 +380,7 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (SVE#)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | Number of event definitions (N<sub>events</sub>)
 
 ## Event Definition (EVNT)
