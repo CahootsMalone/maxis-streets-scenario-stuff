@@ -370,8 +370,8 @@ Appears to be ignored by all AI types except for rogues (which drive to the targ
 * 421 (0x01A5): AirHawk (sedan)
 * 422 (0x01A6): HMX Utility Van (van)
 * 423 (0x01A7): Police car
-* 478 (0x01DC): Villain car
-* Other values appear to revert to the default for specified the AI type.
+* 476 (0x01DC): Villain car
+* Other values appear to revert to the default for the specified AI type.
 
 ## Number of Event Definitions (#EVS)
 
@@ -380,7 +380,7 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (SVE#)
-4 | Int | 4 | Length (always 12 = 0x0C)
+4 | Int | 4 | Length
 8 | Int | 4 | Number of event definitions (N<sub>events</sub>)
 
 ## Event Definition (EVNT)
@@ -476,7 +476,7 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (LBAL)
 4 | Int | 4 | Length
-8 | N/A | Zero or more labels; see table below.
+8 | N/A | Varies | Zero or more labels; see table below.
 
 Individual labels:
 
