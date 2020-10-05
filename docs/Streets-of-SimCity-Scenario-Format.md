@@ -5,7 +5,7 @@ This document describes the format of the scenario files (`.scn`) used by 1997 M
 ## Terms
 The following terms are used in this document:
 * Message text: text that appears during a mission, usually in the top-left of the screen (although optionally centred). Green if associated with a package, red otherwise.
-* Dramatic text: text that is rendered in the centre of the screen using large red letters. Each letter is a 3D model. This text enters and leaves the screen using a randomly-selected transition animation.
+* Dramatic text: text that is rendered in the centre of the screen using large red letters. Each letter is a 3D model. This text enters and leaves the screen using a randomly-selected transition animation. Dramatic text longer than 11 characters will be truncated.
 
 ![Message text and dramatic text](text-types.png "Message text and dramatic text")
 
@@ -28,23 +28,33 @@ This image shows the coordinate system in the context of `Granny123.sc2`, the ci
 
 ## Event Overview
 
-TODO: figuring out what the unknown value in the type 1 event definition section denotes may change my interpretation of how ordering works
-
 * Streets of SimCity scenarios use events and event groups to manage objectives, instructions, and the creation of vehicles and packages.
-* Events are triggered by something happening, e.g., the player reaching a location or delivering a specified number of packages.
+* Events are triggered by something happening. There are five event types:
+  * Type 0: player kills a given number of AI vehicles of a given type.
+  * Type 1: player reaches a location.
+  * Type 2: player delivers a given number of packages.
+  * Type 3: player earns a given amount of money.
+  * Type 4: a rogue explodes.
+* Each event can be triggered either a finite or infinite number of times.
 * Each event is associated with an event group and multiple events can be associated with the same group.
-* An event group is triggered when all the events associated with it have occurred. If an event group is associated with one or more events that can occur an infinite number of times, the group will never be triggered.
+* An event group is triggered when all the events associated with it have occurred as many times as they can.
+  * If an event group is associated with one or more events that can occur an infinite number of times, the group will never be triggered.
 * Event groups can optionally cause the player to win or lose the mission when they occur.
 * Event groups can optionally trigger the "nuclear explosion" effect (the game freezes for a few seconds while an explosion sound plays and the screen turns white and shakes) when they occur.
-* AI vehicles and packages can optionally spawn when a certain event group is triggered (otherwise they spawn after a specified time has elapsed). This is set in the AI and package definition sections.
+* AI vehicles and packages can optionally spawn when a certain event group is triggered (otherwise they spawn after a specified time has elapsed). This is specified in the AI and package definitions.
+* Any event can have an objective label, but it will only be shown in the objective screen (which appears when the F3 key is held) if the event is part of an event group that causes the player to win the mission.
+* Type 0 events (player kills AIs) are enabled at the start of the mission, but only appear in the objective screen (if associated with a mission-win group) after any mission-win type 1 events (player reaches location) preceeding them have been completed.
+* Type 1 events (of any group) are only enabled if the type 1 event associated with a mission-win group before them has been triggered. If no mission-win type 1 event precedes them, they are enabled at the start of the mission.
+* Type 4 events (those associated with a rogue exploding) are enabled at the start of the mission regardless of their associated event group or their position in the list of events.
 * Events associated with a mission-win event group have some unique properties:
-  * They have an associated label that's displayed in the objective screen while the event is enabled. (The objective screen is shown when the F3 key is held.) Labels are specified in a separate section and can be empty strings. Automatic labels (e.g., "Neutralize # Hunters") will be generated if no label exists for an event.
+    * Although events that aren't type 1 are enabled from the start of a mission, their objective label will only appear in the objective screen if all mission-win type 1 events preceding them have been triggered.
   * The location of the active type 1 event (player reaches location) is shown on the map, if applicable.
   * The order of event definitions matters:
     * A type 1 event will be enabled (i.e., appear on the map and be shown in the objective screen) but cannot occur until all events that precede it and are associated with the same group have occurred.
       * For example, in the first *Granny's Wild Ride* mission, the objective that requires the player to visit city hall can only be satisfied after a prior objective (earn $2000) is completed.
-    * All events after a type 1 event won't be enabled until it occurs.
+    * All mission-win events and all type 1 events (regardless of group) after a type 1 event won't be enabled until it occurs.
       * For example, in the second *Galahad's Watch* mission, the objective that requires the player to eliminate three bosses is enabled only after the player has visited the mayor (visiting the mayor comes up a lot in Streets of SimCity).
+    * Essentially, type 1 events associated with a mission-win event group control the flow of the mission.
 
 # File Sections
 
@@ -84,7 +94,7 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (YTIC)
 4 | Int | 4 | Length
-8 | Char | Varies | Null-terminated string containing city filename (including `.sc2` extension)
+8 | Char | >5 | Null-terminated string containing city filename (including `.sc2` extension)
 
 ### Notes
 * The specified SimCity 2000 file must be present in the `Cities` folder.
@@ -97,10 +107,11 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (EMAN)
 4 | Int | 4 | Length
-8 | Char | Varies | Null-terminated string containg scenario name
+8 | Char | >0 | Null-terminated string containing scenario name
 
 ### Notes
 * Appears in the menu.
+* Can be empty.
 
 ## Time Limit (TIME)
 
@@ -109,7 +120,7 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (EMIT)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | Time limit (0 = no limit)
 
 ## Checkpoint Bonus Time (CHKB)
@@ -119,7 +130,7 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (BKHC)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | Time added when going through a checkpoint
 
 ## Unknown (BNUS)
@@ -129,10 +140,11 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (SUNB)
-4 | Int | 4 | Length
-8 | Int | 4 | Unknown. Monetary amount
+4 | Int | 4 | Length (always 12 = 0x0C)
+8 | Int | 4 | Unknown
 
-Some sort of monetary bonus, perhaps for mission completion.
+### Notes
+* Based on the values in existing scenarios, appears to be a monetary bonus, perhaps for mission completion.
 
 ## X Coordinate of Starting Location (LOCX)
 
@@ -141,7 +153,7 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (XCOL)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | X coordinate of start location
 
 ### Notes
@@ -154,7 +166,7 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (YCOL)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | Y coordinate of start location
 
 ## Number of Random Packages (PACK)
@@ -164,8 +176,11 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (KCAP)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | Number of random packages
+
+### Notes
+* The actual number of packages is affected by the value of this number, but also by the number of road tiles.
 
 ## Number of Random Pickups (AMMO)
 
@@ -174,8 +189,11 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (OMMA)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | Number of random pickups
+
+### Notes
+* The actual number of pickups is affected by the value of this number, but also by the number of road tiles.
 
 ## Number of Laps (LAPS)
 
@@ -184,7 +202,7 @@ Quantity: 1
 Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (SPAL)
-4 | Int | 4 | Length
+4 | Int | 4 | Length (always 12 = 0x0C)
 8 | Int | 4 | Number of laps (0 if not a race mission)
 
 ## Unknown (IANM)
@@ -195,7 +213,7 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (MNAI)
 4 | Int | 4 | Length
-8 | Char | 1-N | Null-terminated string
+8 | Char | >0 | Null-terminated string
 
 ### Notes
 * IANM = intro animation?
@@ -208,12 +226,14 @@ Quantity: 1
 
 Offset | Type | Length | Description
 --- | --- | --- | ---
-0 | Char | 4 | Name (MNAI)
+0 | Char | 4 | Name (TXTI)
 4 | Int | 4 | Length
-8 | Char | 1-N | Null-terminated string
+8 | Char | >0 | Null-terminated string
 
 ### Notes
 * Appears in the menu.
+* Can be empty.
+* Newlines are ignored.
 
 ## Unknown (WANM)
 
@@ -223,13 +243,13 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (MNAW)
 4 | Int | 4 | Length
-8 | Char | 1-N | Null-terminated string
+8 | Char | >0 | Null-terminated string
 
 ### Notes
 * WANM = win animation?
 * Probably intended to contain the name of the animation shown when the mission is won, but always empty. See WTXT section.
 
-## Win Text / Win Video (WTXT)
+## Win Text / Win Cutscene (WTXT)
 
 Quantity: 1
 
@@ -237,10 +257,10 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (TXTW)
 4 | Int | 4 | Length
-8 | Char | 1-N | Null-terminated string
+8 | Char | >0 | Null-terminated string
 
 ### Notes
-* An empty string for many missions, but not all.
+* An empty string for many missions (in which case the default win cutscene is used), but not all.
 * Some campaign missions have it set to text that would make sense in the context of victory. For example, `Gal1.scn` has it set to "Somebody is going to pay for ruining my vacation." However, these messages are never shown.
 * Some of the miscellaneous missions (from the *Streets of SimCity* "channel") have it set to the name of one of the characters from the campaign (e.g., "galahad" or "zippy"). In these cases, it determines which video is shown if the player wins the mission.
 
@@ -252,13 +272,13 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (MNAL)
 4 | Int | 4 | Length
-8 | Char | 1-N | Null-terminated string
+8 | Char | >0 | Null-terminated string
 
 ### Notes
 * LANM = lose animation?
 * Probably intended to contain the name of the animation shown when the mission is lost, but always empty. See LTXT section.
 
-## Lose Text / Lose Video (LTXT)
+## Lose Text / Lose Cutscene (LTXT)
 
 Quantity: 1
 
@@ -266,10 +286,10 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (TXTL)
 4 | Int | 4 | Length
-8 | Char | 1-N | Null-terminated string
+8 | Char | >0 | Null-terminated string
 
 ### Notes
-* An empty string for many missions, but not all.
+* An empty string for many missions (in which case the default lose cutscene is used), but not all.
 * Some campaign missions have it set to text that would make sense in the context of defeat. For example, `Gal1.scn` has it set to "You let some punk rank amateurs beat you? How disgraceful." However, these messages are never shown.
 * Some of the miscellaneous missions (from the *Streets of SimCity* "channel") have it set to the name of one of the characters from the campaign (e.g., "galahad" or "zippy"). In these cases, it determines which video is shown if the player loses the mission.
 
@@ -412,16 +432,16 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 Varies | Int | 4 | Number of times this event can be triggered (0 = infinite)
 Varies | Int | 4 | Combined length of message text and dramatic text (minimum value is 2 since null bytes are always present)
-Varies | Char | 1-N | Null-terminated message text (0x00 if none)
-Varies | Char | 1-N | Null-terminated dramatic text (0x00 if none)
-Varies | Char | 1-N | Name of audio file to play (0x00 if none)
+Varies | Char | >0 | Null-terminated message text (0x00 if none)
+Varies | Char | >0 | Null-terminated dramatic text (0x00 if none)
+Varies | Char | >0 | Null-terminated name of audio file to play (0x00 if none)
 Varies | N/A | 4 | Delimiter (CD CD CD CD)
 
 ### Event Type 0: Player Kills AIs
 
 Offset | Type | Length | Description
 --- | --- | --- | ---
-24 | Int | 4 | Number of type-specific values (always 2)
+24 | Int | 4 | Number of type-specific fields (always 2)
 28 | Int | 4 | Number of AIs that must be killed
 32 | Int | 4 | Type of AI that must be killed (see list of AI types in AI Definition section above)
 
@@ -431,8 +451,8 @@ Locations are rectangles specified using the coordinates of their top-left and b
 
 Offset | Type | Length | Description
 --- | --- | --- | ---
-24 | Int | 4 | Number of type-specific values (always 5)
-28 | Int | 4 | Unknown. Wide range of values.
+24 | Int | 4 | Number of type-specific fields (always 5)
+28 | Int | 4 | Unknown. Wide range of values. Possibly a grouping independent of event groups.
 32 | Int | 4 | X coordinate of top-left corner
 36 | Int | 4 | Y coordinate of top-left corner
 40 | Int | 4 | X coordinate of bottom-right corner
@@ -444,7 +464,7 @@ Includes a location rectangle; the rectangle's function is unknown. Each power c
 
 Offset | Type | Length | Description
 --- | --- | --- | ---
-24 | Int | 4 | Number of type-specific values (always 5)
+24 | Int | 4 | Number of type-specific fields (always 5)
 28 | Int | 4 | Number of packages that must be delivered
 32 | Int | 4 | X coordinate of top-left corner
 36 | Int | 4 | Y coordinate of top-left corner
@@ -455,14 +475,14 @@ Offset | Type | Length | Description
 
 Offset | Type | Length | Description
 --- | --- | --- | ---
-24 | Int | 4 | Number of type-specific values (always 1)
+24 | Int | 4 | Number of type-specific fields (always 1)
 28 | Int | 4 | Amount of money that must be earned
 
 ### Event Type 4: Rogues Explode
 
 Offset | Type | Length | Description
 --- | --- | --- | ---
-24 | Int | 4 | Number of type-specific values (always 1)
+24 | Int | 4 | Number of type-specific fields (always 1)
 28 | Int | 4 | Unknown. Usually 0 or 1; set to 4 in `Apocal.scn`.
 
 #### Notes
@@ -482,15 +502,15 @@ Individual labels:
 
 Offset | Type | Length | Description
 --- | --- | --- | ---
-Varies | Char | 0-N | An objective label
+Varies | Char | ≥0 | An objective label
 Varies | N/A | 1 | Delimiter (0x01)
 
 ### Notes
-
 * Labels appear in the objective screen shown when the F3 key is held. For location-based objectives (type 1 events), the relative direction (e.g., "Northwest") is appended by the game.
 * Only events that are part of a type 0 (win mission) event group (see event group section, below) will have their associated label displayed in the objective screen.
 * When an event occurs, its associated label will no longer be shown in the objective screen.
 * Empty labels (0x01 on its own) are common as the number of labels usually matches the number of events.
+* If a given event that's part of a type 0 event group doesn't have an associated label (or its label is empty), a label will be generated for it (e.g., "Neutralize # [name of AI type]" for a type 0 event, "Get to X, Y" for a type 1 event, etc.). Auto-generated labels for events that require the player to perform a given task a certain number of times (e.g., deliver N packages) will be updated as progress is made.
 
 ## Number of Checkpoint Definitions (CHK#)
 
@@ -523,10 +543,13 @@ Offset | Type | Length | Description
 4 | Size | 4 | Length (always 32 = 0x20)
 8 | Bool | 4 | Car lot (0 = enabled, 1 = disabled; yes, it's the opposite of what you'd expect)
 12 | Bool | 4 | Cash reset (0 = user's current global cash total is used with specified amount of cash added, 1 = start with specified amount of cash)
-16 | Int | 4 | Starting cash (if 0xFFFFFF and cash reset is 0, cash is inherited from previous mission in series)
+16 | Int | 4 | Starting cash (if -1 = 0xFFFFFFFF and cash reset is 0, cash is inherited from previous mission in series)
 20 | Bool | 4 | Unknown.
 24 | Bool | 4 | Unknown. Usually 1 for the first mission in a series or standalone missions, but first GW mission has it set to 0 and *second* GW mission has it set to 1.
 28 | Int | 4 | Starting car (see list below)
+
+### Notes
+* The two unknown boolean values are usually both 1 for standalone missions.
 
 ### Starting Cars
 * 0: "TempCar" (random vehicle) or inherit from previous mission
@@ -555,24 +578,24 @@ Offset | Type | Length | Description
 --- | --- | --- | ---
 0 | Char | 4 | Name (KAPA)
 4 | Int | 4 | Length
-8 | Int | 4 | Package type (0 = normal, 1 = money or story element, 2 = item)
+8 | Int | 4 | Package type (0 = normal, 1 = money, 2 = item)
 12 | Int | 4 | Money earned (package type = 0 or 1) OR type of pickup (package type = 2). The money earned may be negative, as for the package near the bottom of the map in race 7.
-16 | Int | 4 | Number of event group that makes package appear (0xFFFFFFFF = there from the beginning)
+16 | Int | 4 | Number of event group that makes package appear (if -1 = 0xFFFFFFFF, package is there from the beginning)
 20 | Int | 2 | X coordinate of pickup location
 22 | Int | 2 | Y coordinate of pickup location
 24 | Int | 2 | X coordinate of delivery location (for items, same as pickup X)
 26 | Int | 2 | Y coordinate of delivery location (for items, same as pickup Y)
-28 | Char | 0-N | Message text that appears when the package is picked up. Optional.
+28 | Char | ≥0 | Message text that appears when the package is picked up. Optional.
 Varies | N/A | 1 | Delimiter: 01
-28 | Char | 0-N | Message text that appears when the package is delivered. Optional.
+28 | Char | ≥0 | Message text that appears when the package is delivered. Optional.
 Varies | N/A | 1 | Delimiter: 01
-Varies | Char | 0-N | Dramatic text that appears when the package is picked up. Optional. If the package is a bomb, the word "BOMB" also appears.
+Varies | Char | ≥0 | Dramatic text that appears when the package is picked up. Optional. If the package is a bomb, the word "BOMB" also appears.
 Varies | N/A | 1 | Delimiter: 01
-Varies | Char | 0-N | Dramatic text that appears when the package is delivered. Optional.
+Varies | Char | ≥0 | Dramatic text that appears when the package is delivered. Optional.
 Varies | N/A | 1 | Delimiter: 01
-Varies | Char | 0-N | Name of a sound file played when the package is picked up. Optional.
+Varies | Char | ≥0 | Name of a sound file played when the package is picked up. Optional.
 Varies | N/A | 1 | Delimiter: 01
-Varies | Char | 0-N | Name of a sound file played when the package is delivered. Optional.
+Varies | Char | ≥0 | Name of a sound file played when the package is delivered. Optional.
 Varies | N/A | 1 | Delimiter: 01
 Varies | N/A | 4 | Delimiter: CD CD CD CD
 
@@ -599,8 +622,15 @@ Varies | N/A | 4 | Delimiter: CD CD CD CD
 * 19: Military radar
 * 20: Hopper
 * 21: Airfoil
-* 22: Bomb. Bombs can only be carried for a limited time before they explode; this duration is proportional to the distance between the pickup and delivery locations. Bombs detonate five seconds after delivery.
+* 22: Bomb.
+  * Bombs can only be carried for a limited time before they explode; this duration is proportional to the distance between the pickup and delivery locations.
+  * Delivering a bomb earns the player $22. This is likely a bug related to the two uses of the fourth field of a package definition.
+  * If a bomb's delivery location is set to the same value as its pickup location, its delivery location will be chosen randomly (a waving person will also be present, which isn't usually the case for defined packages).
 * 23 or higher: Empty package (like 0)
+
+### Notes
+* It's unclear why there are two numbers for each of the repair, gas, and armor pickups.
+* The radar detector cannot be spawned as a pickup.
 
 ## Event Group (EVTG)
 
@@ -612,9 +642,9 @@ Offset | Type | Length | Description
 4 | Int | 4 | Length
 8 | Int | 4 | Number
 12 | Int | 4 | Type (see below)
-16 | Bool | 2 | Whether or not nuclear explosion event should be triggered
-18 | Char | 1-N | Null-terminated message text (if none, a single 00 byte)
-Varies | Char | 1-N | Null-terminated dramatic text (if none, a single 00 byte)
+16 | Bool | 2 | Whether or not a nuclear explosion effect should be triggered
+18 | Char | >0 | Null-terminated message text (if none, a single 00 byte)
+Varies | Char | >0 | Null-terminated dramatic text (if none, a single 00 byte)
 Varies | N/A | 2 | Delimiter: CD CD
 
 ### Event Group Types
