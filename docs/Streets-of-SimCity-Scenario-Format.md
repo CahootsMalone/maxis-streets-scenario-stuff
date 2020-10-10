@@ -41,20 +41,18 @@ This image shows the coordinate system in the context of `Granny123.sc2`, the ci
   * If an event group is associated with one or more events that can occur an infinite number of times, the group will never be triggered.
 * Event groups can optionally cause the player to win or lose the mission when they occur.
 * Event groups can optionally trigger the "nuclear explosion" effect (the game freezes for a few seconds while an explosion sound plays and the screen turns white and shakes) when they occur.
-* AI vehicles and packages can optionally spawn when a certain event group is triggered (otherwise they spawn after a specified time has elapsed). This is specified in the AI and package definitions.
+* AI vehicles and packages can optionally spawn when a certain event group is triggered. This is specified in the AI and package definitions.
 * Any event can have an objective label, but it will only be shown in the objective screen (which appears when the F3 key is held) if the event is part of an event group that causes the player to win the mission.
-* Type 0 events (player kills AIs) are enabled at the start of the mission, but only appear in the objective screen (if associated with a mission-win group) after any mission-win type 1 events (player reaches location) preceeding them have been completed.
-* Type 1 events (of any group) are only enabled if the type 1 event associated with a mission-win group before them has been triggered. If no mission-win type 1 event precedes them, they are enabled at the start of the mission.
-* Type 4 events (those associated with a rogue exploding) are enabled at the start of the mission regardless of their associated event group or their position in the list of events.
-* Events associated with a mission-win event group have some unique properties:
-    * Although events that aren't type 1 are enabled from the start of a mission, their objective label will only appear in the objective screen if all mission-win type 1 events preceding them have been triggered.
-  * The location of the active type 1 event (player reaches location) is shown on the map, if applicable.
-  * The order of event definitions matters:
-    * A type 1 event will be enabled (i.e., appear on the map and be shown in the objective screen) but cannot occur until all events that precede it and are associated with the same group have occurred.
-      * For example, in the first *Granny's Wild Ride* mission, the objective that requires the player to visit city hall can only be satisfied after a prior objective (earn $2000) is completed.
-    * All mission-win events and all type 1 events (regardless of group) after a type 1 event won't be enabled until it occurs.
-      * For example, in the second *Galahad's Watch* mission, the objective that requires the player to eliminate three bosses is enabled only after the player has visited the mayor (visiting the mayor comes up a lot in Streets of SimCity).
-    * Essentially, type 1 events associated with a mission-win event group control the flow of the mission.
+  * When retrieving the label for a mission-win event, Streets of SimCity uses the *i*<sup>th</sup> label for the *i*<sup>th</sup> event. This means that empty labels are required for events that aren't associated with the mission-win group (to fill the gaps between the labels for mission-win events).
+  * If no label is specified for a mission-win event or its label is empty, Streets will generate a label for it.
+
+### Event Management
+
+* Type 1 events that are part of the mission-win group block all type 1 events (regardless of group association) that come after them in the list of events (i.e., those type 1 events cannot occur until the mission-win type 1 event before them does).
+* A mission-win type 1 event cannot occur until all events that precede it in the list of events and satisfy either of these criteria have occurred:
+  * The event is in the mission-win event group.
+  * The event is a type 1 event.
+* A mission-win event that isn't type 1 will only have its label shown in the objective screen once all mission-win type 1 events before it have occurred. However, it can occur at any time.
 
 # File Sections
 
@@ -326,7 +324,7 @@ Offset | Type | Length | Description
 16 | Int | 4 | AI type (see list below)
 20 | Int | 2 | X coordinate of spawn location (see notes below)
 22 | Int | 2 | Y coordinate of spawn location (see notes below)
-24 | Int | 4 | Unknown. Values that appear are 0-18, 20, 25, 30, 35, 40, and 45.
+24 | Int | 4 | Approximately how far from the spawn location the AI(s) will roam (0 = unlimited). Ignored for rogues.
 28 | Bool | 4 | Spawn trigger (0 = elapsed time, 1 = event)
 32 | Int | 4 | Spawn time (if trigger = 0) or number of trigger event (if trigger = 01)
 36 | Int | 4 | Speed1 (see notes below)
@@ -353,7 +351,7 @@ Set to (-1, -1) for a random location. For respawning AIs, note that a random lo
 ### Speed1 and Speed2
 It appears that all AI types move at Speed1 and ignore the value of Speed2 (even when Speed2 is set to 0), with the exception of racers, for whom the opposite is true.
 
-This is puzzling, as both speeds are given reasonable values for all AIs, and Speed2 is usually greater than Speed1.
+This is puzzling, as both speeds are given reasonable values for all AIs, and Speed2 is usually greater than Speed1 (which implies some sort of relationship between the two).
 
 It's possible that these values specify the speeds to use for two types of AI behaviour and that AIs spend most (or all) of their time exhibiting only one of these behaviours.
 
@@ -407,7 +405,7 @@ Offset | Type | Length | Description
 
 Quantity: N<sub>events</sub>
 
-Events occurs when a condition is satisifed. There are five types of events and each type has a different trigger condition. There are fields common to each type, but also type-specific fields.
+Events occurs when a condition is satisifed. There are five types of event and each type has a different trigger condition. There are fields common to each type, but also type-specific fields.
 
 ### Common Start Fields
 
@@ -421,7 +419,7 @@ Offset | Type | Length | Description
 4 | Int | 4 | Length
 8 | Int | 4 | Number of the event group with which this event is associated
 12 | Int | 4 | Event type in [0, 4]; see below
-16 | Int | 4 | Time bonus (seconds)
+16 | Int | 4 | Time bonus
 20 | Int | 4 | Money bonus
 
 ### Common End Fields
@@ -545,7 +543,7 @@ Offset | Type | Length | Description
 12 | Bool | 4 | Cash reset (0 = user's current global cash total is used with specified amount of cash added, 1 = start with specified amount of cash)
 16 | Int | 4 | Starting cash (if -1 = 0xFFFFFFFF and cash reset is 0, cash is inherited from previous mission in series)
 20 | Bool | 4 | Unknown.
-24 | Bool | 4 | Unknown. Usually 1 for the first mission in a series or standalone missions, but first GW mission has it set to 0 and *second* GW mission has it set to 1.
+24 | Bool | 4 | Unknown. Usually 1 for the first mission in a series of standalone missions, but the first GW mission has it set to 0 and the *second* GW mission has it set to 1.
 28 | Int | 4 | Starting car (see list below)
 
 ### Notes
