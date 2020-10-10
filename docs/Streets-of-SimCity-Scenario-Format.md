@@ -20,9 +20,10 @@ The following terms are used in this document:
 * Left-aligned message text longer than roughly 90 characters goes beyond the right edge of the screen. Text isn't automatically wrapped; newlines must be included explicitly.
 * When coordinates are specified, the top-left corner of the map is the origin. The x axis increases going right/east and the y axis increases going down/south. Coordinates are zero-based.
   * Note that this differs from the coordinate system used in SimCity 2000 (the origin is the same, but the X and Y axes are swapped).
-  * The RaceEdit program included with Streets of SimCity is a convenient way to obtain coordinates.
+  * The RaceEdit program included with Streets of SimCity is a convenient way to obtain coordinates, especially when combined with image editing software; see [this document](Getting-Map-Coordinates.md) for details.
 
 ### Coordinate System
+
 This image shows the coordinate system in the context of `Granny123.sc2`, the city used for the first three missions of the *Granny's Wild Ride* campaign. The city image is from RaceEdit.
 ![Coordinate system](coordinate-system.png "Coordinate system")
 
