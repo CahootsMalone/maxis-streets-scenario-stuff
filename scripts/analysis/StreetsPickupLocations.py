@@ -77,14 +77,14 @@ for filePath in files:
     draw = ImageDraw.Draw(pickupMap)
     
     with open(filePath, 'rb') as file:
-        data = file.read();
-        byteCount = len(data);
+        data = file.read()
+        byteCount = len(data)
 
         for offset in range(byteCount - 4):
             marker = data[offset:offset+4]
             if marker == b'KAPA': # APAK = a package?
-                posPackType = offset + 8;
-                posType = offset + 12;
+                posPackType = offset + 8
+                posType = offset + 12
                 posPickupX = offset + 20
                 posPickupY = offset + 22
                 posDeliveryX = offset + 24
