@@ -232,7 +232,7 @@ Offset | Type | Length | Description
 ### Notes
 * Appears in the menu.
 * Can be empty.
-* Newlines are ignored.
+* Unlike in message text, escaped newlines (`\n`) are ignored, but a byte set to 0x0A (the ASCII line feed control code value) will produce a newline.
 
 ## Unknown (WANM)
 
